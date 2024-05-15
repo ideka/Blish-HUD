@@ -26,18 +26,28 @@ namespace Blish_HUD.LocalDb {
             }
         }
 
+        private HashSet<string> _queuedReqSet = new HashSet<string>();
+        private HashSet<string> _reqSet = new HashSet<string>();
+
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly Meta _meta;
         private readonly string _metaPath;
         private readonly string _dbPath;
         private readonly Dictionary<string, ILoadCollection> _collections = new Dictionary<string, ILoadCollection>();
 
-        private readonly object _lock = new object();
+        private readonly object _reqSetLock = new object();
+        private readonly object _metaLock = new object();
 
         public IDbAccess GetContext()
             => new DbAccess(new SQLiteContext(_dbPath, true), this);
 
-        private async Task UpdateCollections() {
+        internal void QueueReqSet(HashSet<string> reqSet) {
+            lock (_reqSetLock) {
+                _queuedReqSet = reqSet;
+            }
+        }
+
+        internal async Task UpdateCollections() {
             var version = new Version() {
                 BuildId = GameService.Gw2Mumble.Info.BuildId,
                 Locale = GameService.Overlay.UserLocale.Value,
@@ -50,25 +60,56 @@ namespace Blish_HUD.LocalDb {
 
             await using var db = new SQLiteContext(_dbPath, false);
 
-            await Task.WhenAll(_collections.Select(async kv => {
-                if (version.IsTheSame(kv.Value.CurrentVersion) || kv.Value.Loading != null) {
-                    return;
-                }
-
-                await kv.Value.Load(db, version, _cts.Token);
-
-                lock (_lock) {
-                    if (kv.Value.CurrentVersion is Version newVersion) {
-                        _meta.Versions[kv.Key] = newVersion;
-                    } else {
-                        _meta.Versions.Remove(kv.Key);
+            while (true) {
+                lock (_reqSetLock) {
+                    if (_reqSet.SetEquals(_queuedReqSet)) {
+                        break;
                     }
 
-                    File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
+                    _reqSet = _queuedReqSet;
                 }
-            }));
 
-            // TODO: Clear unneeded collections
+                // Make sure all required collections are up-to-date
+                await Task.WhenAll(_reqSet.Select(async name => {
+                    if (!_collections.TryGetValue(name, out var collection)) {
+                        _logger.Warn($"Attempted to load unknown collection {name}");
+                        return;
+                    }
+
+                    if (version.IsTheSame(collection.CurrentVersion) || collection.Loading != null) {
+                        return;
+                    }
+
+                    await collection.Load(db, version, _cts.Token);
+
+                    lock (_metaLock) {
+                        if (collection.CurrentVersion is Version newVersion) {
+                            _meta.Versions[name] = newVersion;
+                        } else {
+                            _meta.Versions.Remove(name);
+                        }
+
+                        File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
+                    }
+                }));
+
+                // Delete all unneeded collections
+                await Task.WhenAll(_collections.Select(async kv => {
+                    if (_reqSet.Contains(kv.Key)) {
+                        return;
+                    }
+
+                    await kv.Value.Unload(db, _cts.Token);
+
+                    lock (_metaLock) {
+                        _meta.Versions.Remove(kv.Key);
+                        File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
+                    }
+                }));
+
+                // Vacuum database
+                await db.Connection.ExecuteScalarAsync<string>("VACUUM");
+            }
         }
 
         private void BuildIdChanged(object sender, ValueEventArgs<int> e) {

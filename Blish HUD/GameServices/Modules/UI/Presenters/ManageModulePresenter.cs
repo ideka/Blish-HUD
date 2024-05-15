@@ -237,6 +237,10 @@ namespace Blish_HUD.Modules.UI.Presenters {
             // ignore module dependencies has been selected)
             if (!this.Model.DependenciesMet) return false;
 
+            // Can't enable if the module requires an unknown local
+            // collection
+            if (!this.Model.LocalCollectionsExist) return false;
+
             return true;
         }
 

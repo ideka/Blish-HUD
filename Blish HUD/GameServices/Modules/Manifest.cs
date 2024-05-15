@@ -47,6 +47,9 @@ namespace Blish_HUD.Modules {
         [JsonProperty("directories")]
         public List<string> Directories { get; private set; }
 
+        [JsonProperty("local_collections")]
+        public List<string> LocalCollections { get; private set; }
+
         [JsonProperty("enable_without_gw2")]
         public bool EnabledWithoutGW2 { get; private set; }
 
@@ -55,11 +58,12 @@ namespace Blish_HUD.Modules {
 
         protected Manifest() {
             // Ensure nothing is empty, regardless of manifest version and contents
-            this.Description    = this.Description    ?? "";
-            this.Dependencies   = this.Dependencies   ?? new List<ModuleDependency>(0);
-            this.Url            = this.Url            ?? "";
-            this.Directories    = this.Directories    ?? new List<string>(0);
-            this.ApiPermissions = this.ApiPermissions ?? new Dictionary<TokenPermission, ModuleApiPermissions>(0);
+            this.Description      = this.Description      ?? "";
+            this.Dependencies     = this.Dependencies     ?? new List<ModuleDependency>(0);
+            this.Url              = this.Url              ?? "";
+            this.Directories      = this.Directories      ?? new List<string>(0);
+            this.LocalCollections = this.LocalCollections ?? new List<string>(0);
+            this.ApiPermissions   = this.ApiPermissions   ?? new Dictionary<TokenPermission, ModuleApiPermissions>(0);
         }
 
         /// <summary>

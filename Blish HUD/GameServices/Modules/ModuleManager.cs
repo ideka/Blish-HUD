@@ -48,6 +48,8 @@ namespace Blish_HUD.Modules {
             State.IgnoreDependencies
          || Manifest.Dependencies.TrueForAll(d => d.GetDependencyDetails().CheckResult == ModuleDependencyCheckResult.Available);
 
+        public bool LocalCollectionsExist => Manifest.LocalCollections.TrueForAll(GameService.LocalDb.CollectionExists);
+
         public Manifest Manifest { get; }
 
         public ModuleState State { get; }

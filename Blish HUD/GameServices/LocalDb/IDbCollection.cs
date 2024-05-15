@@ -22,6 +22,7 @@ namespace Blish_HUD.LocalDb {
 
     public interface IMetaCollection {
         event Action? Loaded;
+        bool IsAvailable { get; }
         Task WaitUntilLoaded();
     }
 

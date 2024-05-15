@@ -466,10 +466,11 @@ namespace Blish_HUD.LocalDb {
 
             SQLiteContext.Create(_dbPath, _collections.Values);
 
-            _ = UpdateCollections();
-
             GameService.Gw2Mumble.Info.BuildIdChanged += BuildIdChanged;
         }
+
+        internal IMetaCollection? GetCollection(string name)
+            => _collections.TryGetValue(name, out var collection) ? (IMetaCollection?)collection : null;
 
         private class DbAccess : IDbAccess {
             public IDbCollection<int, Skill> Skills { get; }
