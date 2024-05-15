@@ -15,10 +15,60 @@ using IOFile = System.IO.File;
 
 namespace Blish_HUD.LocalDb {
     public interface IDbAccess : IDisposable, IAsyncDisposable {
+        IDbCollection<int, Achievement> Achievements { get; }
+        IDbCollection<int, AchievementCategory> AchievementCategories { get; }
+        IDbCollection<string, AchievementGroup> AchievementGroup { get; }
+        IDbCollection<string, BackstoryAnswer> BackstoryAnswer { get; }
+        IDbCollection<int, BackstoryQuestion> BackstoryQuestion { get; }
+        IDbCollection<int, Color> Colors { get; }
+        IDbCollection<int, Continent> Continents { get; }
+        IDbCollection<int, Currency> Currencies { get; }
+        IDbCollection<string, DailyCrafting> DailyCrafting { get; }
+        IDbCollection<string, Dungeon> Dungeons { get; }
+        IDbCollection<string, Emote> Emotes { get; }
+        IDbCollection<string, File> Files { get; }
+        IDbCollection<int, Finisher> Finishers { get; }
+        IDbCollection<int, Glider> Gliders { get; }
+        IDbCollection<string, GuildPermission> GuildPermissions { get; }
+        IDbCollection<int, GuildUpgrade> GuildUpgrades { get; }
+        IDbCollection<int, Cat> HomeCats { get; }
+        IDbCollection<string, Node> HomeNodes { get; }
+        IDbCollection<int, Item> Items { get; }
+        IDbCollection<int, Itemstat> ItemStats { get; }
+        IDbCollection<int, LegendaryArmory> LegendaryArmory { get; }
+        IDbCollection<string, Legend> Legends { get; }
+        IDbCollection<int, MailCarrier> MailCarriers { get; }
+        IDbCollection<string, MapChest> MapChests { get; }
+        IDbCollection<int, Map> Maps { get; }
+        IDbCollection<int, Mastery> Masteries { get; }
+        IDbCollection<int, MaterialCategory> Materials { get; }
+        IDbCollection<int, Mini> Minis { get; }
+        IDbCollection<int, MountSkin> MountSkins { get; }
+        IDbCollection<string, MountType> MountTypes { get; }
+        IDbCollection<int, Novelty> Novelties { get; }
+        IDbCollection<int, Outfit> Outfits { get; }
+        IDbCollection<int, Pet> Pets { get; }
+        IDbCollection<string, Profession> Professions { get; }
+        IDbCollection<int, PvpAmulet> PvpAmulets { get; }
+        IDbCollection<string, PvpHero> PvpHeroes { get; }
+        IDbCollection<int, PvpRank> PvpRank { get; }
+        IDbCollection<string, Quaggan> Quaggans { get; }
+        IDbCollection<int, Quest> Quests { get; }
+        IDbCollection<string, Race> Races { get; }
+        IDbCollection<string, Raid> Raids { get; }
+        IDbCollection<int, Recipe> Recipes { get; }
         IDbCollection<int, Skill> Skills { get; }
-        IDbCollection<int, Trait> Traits { get; }
-        IDbCollection<int, Specialization> Specializations { get; }
         IDbCollection<int, Skin> Skins { get; }
+        IDbCollection<int, Specialization> Specializations { get; }
+        IDbCollection<int, Story> Stories { get; }
+        IDbCollection<string, StorySeason> StorySeasons { get; }
+        IDbCollection<int, Title> Titles { get; }
+        IDbCollection<int, Trait> Traits { get; }
+        IDbCollection<string, WorldBoss> WorldBosses { get; }
+        IDbCollection<int, WvwAbility> WvwAbilities { get; }
+        IDbCollection<string, WvwObjective> WvwObjective { get; }
+        IDbCollection<int, WvwRank> WvwRank { get; }
+        IDbCollection<int, WvwUpgrade> WvwUpgrade { get; }
     }
 
     internal partial class DbHandler {
@@ -473,19 +523,119 @@ namespace Blish_HUD.LocalDb {
             => _collections.TryGetValue(name, out var collection) ? (IMetaCollection?)collection : null;
 
         private class DbAccess : IDbAccess {
+            public IDbCollection<int, Achievement> Achievements { get; }
+            public IDbCollection<int, AchievementCategory> AchievementCategories { get; }
+            public IDbCollection<string, AchievementGroup> AchievementGroup { get; }
+            public IDbCollection<string, BackstoryAnswer> BackstoryAnswer { get; }
+            public IDbCollection<int, BackstoryQuestion> BackstoryQuestion { get; }
+            public IDbCollection<int, Color> Colors { get; }
+            public IDbCollection<int, Continent> Continents { get; }
+            public IDbCollection<int, Currency> Currencies { get; }
+            public IDbCollection<string, DailyCrafting> DailyCrafting { get; }
+            public IDbCollection<string, Dungeon> Dungeons { get; }
+            public IDbCollection<string, Emote> Emotes { get; }
+            public IDbCollection<string, File> Files { get; }
+            public IDbCollection<int, Finisher> Finishers { get; }
+            public IDbCollection<int, Glider> Gliders { get; }
+            public IDbCollection<string, GuildPermission> GuildPermissions { get; }
+            public IDbCollection<int, GuildUpgrade> GuildUpgrades { get; }
+            public IDbCollection<int, Cat> HomeCats { get; }
+            public IDbCollection<string, Node> HomeNodes { get; }
+            public IDbCollection<int, Item> Items { get; }
+            public IDbCollection<int, Itemstat> ItemStats { get; }
+            public IDbCollection<int, LegendaryArmory> LegendaryArmory { get; }
+            public IDbCollection<string, Legend> Legends { get; }
+            public IDbCollection<int, MailCarrier> MailCarriers { get; }
+            public IDbCollection<string, MapChest> MapChests { get; }
+            public IDbCollection<int, Map> Maps { get; }
+            public IDbCollection<int, Mastery> Masteries { get; }
+            public IDbCollection<int, MaterialCategory> Materials { get; }
+            public IDbCollection<int, Mini> Minis { get; }
+            public IDbCollection<int, MountSkin> MountSkins { get; }
+            public IDbCollection<string, MountType> MountTypes { get; }
+            public IDbCollection<int, Novelty> Novelties { get; }
+            public IDbCollection<int, Outfit> Outfits { get; }
+            public IDbCollection<int, Pet> Pets { get; }
+            public IDbCollection<string, Profession> Professions { get; }
+            public IDbCollection<int, PvpAmulet> PvpAmulets { get; }
+            public IDbCollection<string, PvpHero> PvpHeroes { get; }
+            public IDbCollection<int, PvpRank> PvpRank { get; }
+            public IDbCollection<string, Quaggan> Quaggans { get; }
+            public IDbCollection<int, Quest> Quests { get; }
+            public IDbCollection<string, Race> Races { get; }
+            public IDbCollection<string, Raid> Raids { get; }
+            public IDbCollection<int, Recipe> Recipes { get; }
             public IDbCollection<int, Skill> Skills { get; }
-            public IDbCollection<int, Trait> Traits { get; }
-            public IDbCollection<int, Specialization> Specializations { get; }
             public IDbCollection<int, Skin> Skins { get; }
+            public IDbCollection<int, Specialization> Specializations { get; }
+            public IDbCollection<int, Story> Stories { get; }
+            public IDbCollection<string, StorySeason> StorySeasons { get; }
+            public IDbCollection<int, Title> Titles { get; }
+            public IDbCollection<int, Trait> Traits { get; }
+            public IDbCollection<string, WorldBoss> WorldBosses { get; }
+            public IDbCollection<int, WvwAbility> WvwAbilities { get; }
+            public IDbCollection<string, WvwObjective> WvwObjective { get; }
+            public IDbCollection<int, WvwRank> WvwRank { get; }
+            public IDbCollection<int, WvwUpgrade> WvwUpgrade { get; }
 
             private readonly SQLiteContext _db;
 
             public DbAccess(SQLiteContext db, DbHandler local) {
                 _db = db;
+                Achievements = local._achievements.Access(_db.Connection);
+                AchievementCategories = local._achievementCategories.Access(_db.Connection);
+                AchievementGroup = local._achievementGroups.Access(_db.Connection);
+                BackstoryAnswer = local._backstoryAnswers.Access(_db.Connection);
+                BackstoryQuestion = local._backstoryQuestions.Access(_db.Connection);
+                Colors = local._colors.Access(_db.Connection);
+                Continents = local._continents.Access(_db.Connection);
+                Currencies = local._currencies.Access(_db.Connection);
+                DailyCrafting = local._dailyCrafting.Access(_db.Connection);
+                Dungeons = local._dungeons.Access(_db.Connection);
+                Emotes = local._emotes.Access(_db.Connection);
+                Files = local._files.Access(_db.Connection);
+                Finishers = local._finishers.Access(_db.Connection);
+                Gliders = local._gliders.Access(_db.Connection);
+                GuildPermissions = local._guildPermissions.Access(_db.Connection);
+                GuildUpgrades = local._guildUpgrades.Access(_db.Connection);
+                HomeCats = local._homeCats.Access(_db.Connection);
+                HomeNodes = local._homeNodes.Access(_db.Connection);
+                Items = local._items.Access(_db.Connection);
+                ItemStats = local._itemStats.Access(_db.Connection);
+                LegendaryArmory = local._legendaryArmory.Access(_db.Connection);
+                Legends = local._legends.Access(_db.Connection);
+                MailCarriers = local._mailCarriers.Access(_db.Connection);
+                MapChests = local._mapChests.Access(_db.Connection);
+                Maps = local._maps.Access(_db.Connection);
+                Masteries = local._masteries.Access(_db.Connection);
+                Materials = local._materials.Access(_db.Connection);
+                Minis = local._minis.Access(_db.Connection);
+                MountSkins = local._mountSkins.Access(_db.Connection);
+                MountTypes = local._mountTypes.Access(_db.Connection);
+                Novelties = local._novelties.Access(_db.Connection);
+                Outfits = local._outfits.Access(_db.Connection);
+                Pets = local._pets.Access(_db.Connection);
+                Professions = local._professions.Access(_db.Connection);
+                PvpAmulets = local._pvpAmulets.Access(_db.Connection);
+                PvpHeroes = local._pvpHeroes.Access(_db.Connection);
+                PvpRank = local._pvpRank.Access(_db.Connection);
+                Quaggans = local._quaggans.Access(_db.Connection);
+                Quests = local._quests.Access(_db.Connection);
+                Races = local._races.Access(_db.Connection);
+                Raids = local._raids.Access(_db.Connection);
+                Recipes = local._recipes.Access(_db.Connection);
                 Skills = local._skills.Access(_db.Connection);
-                Traits = local._traits.Access(_db.Connection);
-                Specializations = local._specializations.Access(_db.Connection);
                 Skins = local._skins.Access(_db.Connection);
+                Specializations = local._specializations.Access(_db.Connection);
+                Stories = local._stories.Access(_db.Connection);
+                StorySeasons = local._storySeasons.Access(_db.Connection);
+                Titles = local._titles.Access(_db.Connection);
+                Traits = local._traits.Access(_db.Connection);
+                WorldBosses = local._worldBosses.Access(_db.Connection);
+                WvwAbilities = local._wvwAbilities.Access(_db.Connection);
+                WvwObjective = local._wvwObjective.Access(_db.Connection);
+                WvwRank = local._wvwRank.Access(_db.Connection);
+                WvwUpgrade = local._wvwUpgrade.Access(_db.Connection);
             }
 
             public void Dispose() => _db.Dispose();

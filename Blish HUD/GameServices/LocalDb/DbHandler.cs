@@ -38,7 +38,7 @@ namespace Blish_HUD.LocalDb {
         private readonly object _reqSetLock = new object();
         private readonly object _metaLock = new object();
 
-        public IDbAccess GetContext()
+        internal IDbAccess GetAccess()
             => new DbAccess(new SQLiteContext(_dbPath, true), this);
 
         internal void QueueReqSet(HashSet<string> reqSet) {

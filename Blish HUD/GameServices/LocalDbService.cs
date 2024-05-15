@@ -16,6 +16,10 @@ namespace Blish_HUD {
         private string _basePath = null!;
         private DbHandler _handler = null!;
 
+        public IDbAccess GetAccess() {
+            return _handler.GetAccess();
+        }
+
         protected override void Initialize() {
             _basePath = Path.Combine(DirectoryUtil.BasePath, DIRECTORY_NAME);
             Directory.CreateDirectory(_basePath);
