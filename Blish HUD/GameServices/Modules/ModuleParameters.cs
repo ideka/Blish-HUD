@@ -64,17 +64,8 @@ namespace Blish_HUD.Modules {
         }
 
         internal async Task LoadAsync() {
-            await _gw2ApiManager.RenewSubtoken();
-
             GameService.LocalDb.UpdateCollections(); // Shouldn't be necessary but calling just in case
-            await Task.WhenAll(this.Manifest.LocalCollections.Select(name => {
-                if (!(GameService.LocalDb.GetCollection(name) is LocalDb.IMetaCollection collection)) {
-                    // TODO: Should probably error out in this case...
-                    Logger.Error($"Unknown local collection requested: {name}, ignoring.");
-                    return Task.CompletedTask;
-                }
-                return collection.WaitUntilLoaded();
-            }));
+            await _gw2ApiManager.RenewSubtoken();
         }
 
         public void Dispose() {

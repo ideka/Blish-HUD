@@ -14,6 +14,63 @@ using IOFile = System.IO.File;
 #nullable enable
 
 namespace Blish_HUD.LocalDb {
+    public interface IDbMeta {
+        IMetaCollection Achievements { get; }
+        IMetaCollection AchievementCategories { get; }
+        IMetaCollection AchievementGroup { get; }
+        IMetaCollection BackstoryAnswer { get; }
+        IMetaCollection BackstoryQuestion { get; }
+        IMetaCollection Colors { get; }
+        IMetaCollection Continents { get; }
+        IMetaCollection Currencies { get; }
+        IMetaCollection DailyCrafting { get; }
+        IMetaCollection Dungeons { get; }
+        IMetaCollection Emotes { get; }
+        IMetaCollection Files { get; }
+        IMetaCollection Finishers { get; }
+        IMetaCollection Gliders { get; }
+        IMetaCollection GuildPermissions { get; }
+        IMetaCollection GuildUpgrades { get; }
+        IMetaCollection HomeCats { get; }
+        IMetaCollection HomeNodes { get; }
+        IMetaCollection Items { get; }
+        IMetaCollection ItemStats { get; }
+        IMetaCollection LegendaryArmory { get; }
+        IMetaCollection Legends { get; }
+        IMetaCollection MailCarriers { get; }
+        IMetaCollection MapChests { get; }
+        IMetaCollection Maps { get; }
+        IMetaCollection Masteries { get; }
+        IMetaCollection Materials { get; }
+        IMetaCollection Minis { get; }
+        IMetaCollection MountSkins { get; }
+        IMetaCollection MountTypes { get; }
+        IMetaCollection Novelties { get; }
+        IMetaCollection Outfits { get; }
+        IMetaCollection Pets { get; }
+        IMetaCollection Professions { get; }
+        IMetaCollection PvpAmulets { get; }
+        IMetaCollection PvpHeroes { get; }
+        IMetaCollection PvpRank { get; }
+        IMetaCollection Quaggans { get; }
+        IMetaCollection Quests { get; }
+        IMetaCollection Races { get; }
+        IMetaCollection Raids { get; }
+        IMetaCollection Recipes { get; }
+        IMetaCollection Skills { get; }
+        IMetaCollection Skins { get; }
+        IMetaCollection Specializations { get; }
+        IMetaCollection Stories { get; }
+        IMetaCollection StorySeasons { get; }
+        IMetaCollection Titles { get; }
+        IMetaCollection Traits { get; }
+        IMetaCollection WorldBosses { get; }
+        IMetaCollection WvwAbilities { get; }
+        IMetaCollection WvwObjective { get; }
+        IMetaCollection WvwRank { get; }
+        IMetaCollection WvwUpgrade { get; }
+    }
+
     public interface IDbAccess : IDisposable, IAsyncDisposable {
         IDbCollection<int, Achievement> Achievements { get; }
         IDbCollection<int, AchievementCategory> AchievementCategories { get; }
@@ -71,7 +128,7 @@ namespace Blish_HUD.LocalDb {
         IDbCollection<int, WvwUpgrade> WvwUpgrade { get; }
     }
 
-    internal partial class DbHandler {
+    internal partial class DbHandler : IDbMeta {
         // /v2/achievements
         private readonly Collection<int, Achievement> _achievements;
         public IMetaCollection Achievements => _achievements;

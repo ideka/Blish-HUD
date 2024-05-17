@@ -13,6 +13,8 @@ namespace Blish_HUD {
         private const string META_FILENAME = "meta.json";
         private const string DATABASE_FILENAME = "localdb.sqlite";
 
+        public IDbMeta Meta => _handler;
+
         private string _basePath = null!;
         private DbHandler _handler = null!;
 
@@ -51,10 +53,6 @@ namespace Blish_HUD {
 
         internal bool CollectionExists(string name) {
             return _handler.GetCollection(name) != null;
-        }
-
-        internal IMetaCollection? GetCollection(string name) {
-            return _handler.GetCollection(name);
         }
 
         private void ModuleRegistered(object sender, ValueEventArgs<Modules.ModuleManager> e) {
