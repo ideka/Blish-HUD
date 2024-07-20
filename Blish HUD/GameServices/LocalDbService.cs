@@ -43,10 +43,6 @@ namespace Blish_HUD {
             _handler.Dispose();
         }
 
-        internal void UpdateCollections() {
-            _ = _handler.UpdateCollections();
-        }
-
         internal int CountMismatchedLocaleCollections(Locale locale) {
             return _handler.CountMismatchedLocaleCollections(locale);
         }
@@ -56,12 +52,12 @@ namespace Blish_HUD {
             UpdateCollections();
         }
 
-        internal bool CollectionExists(string name) {
-            return _handler.GetCollection(name) != null;
-        }
-
         private void BuildIdChanged(object sender, ValueEventArgs<int> e) {
             UpdateCollections();
+        }
+
+        private void UpdateCollections() {
+            _ = _handler.UpdateCollections();
         }
     }
 }

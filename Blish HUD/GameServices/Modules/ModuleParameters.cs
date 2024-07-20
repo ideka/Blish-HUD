@@ -64,7 +64,6 @@ namespace Blish_HUD.Modules {
         }
 
         internal async Task LoadAsync() {
-            GameService.LocalDb.UpdateCollections(); // Shouldn't be necessary but calling just in case
             await _gw2ApiManager.RenewSubtoken();
         }
 
