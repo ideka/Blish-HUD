@@ -26,26 +26,16 @@ namespace Blish_HUD.LocalDb {
             }
         }
 
-        private HashSet<string> _queuedReqSet = new HashSet<string>();
-        private HashSet<string> _reqSet = new HashSet<string>();
-
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly Meta _meta;
         private readonly string _metaPath;
         private readonly string _dbPath;
         private readonly Dictionary<string, ILoadCollection> _collections = new Dictionary<string, ILoadCollection>();
 
-        private readonly object _reqSetLock = new object();
-        private readonly object _metaLock = new object();
+        private readonly object _lock = new object();
 
         internal IDbAccess GetAccess()
             => new DbAccess(new SQLiteContext(_dbPath, true), this);
-
-        internal void QueueReqSet(HashSet<string> reqSet) {
-            lock (_reqSetLock) {
-                _queuedReqSet = reqSet;
-            }
-        }
 
         internal async Task UpdateCollections() {
             var version = new Version() {
@@ -60,56 +50,30 @@ namespace Blish_HUD.LocalDb {
 
             await using var db = new SQLiteContext(_dbPath, false);
 
-            while (true) {
-                lock (_reqSetLock) {
-                    if (_reqSet.SetEquals(_queuedReqSet)) {
-                        break;
-                    }
+            // Make sure all collections are up-to-date
+            await Task.WhenAll(_collections.Select(async kv => {
+                string name = kv.Key;
+                ILoadCollection collection = kv.Value;
 
-                    _reqSet = _queuedReqSet;
+                if (version.IsTheSame(collection.CurrentVersion) || collection.Loading != null) {
+                    return;
                 }
 
-                // Make sure all required collections are up-to-date
-                await Task.WhenAll(_reqSet.Select(async name => {
-                    if (!_collections.TryGetValue(name, out var collection)) {
-                        _logger.Warn($"Attempted to load unknown collection {name}");
-                        return;
+                await collection.Load(db, version, _cts.Token);
+
+                lock (_lock) {
+                    if (collection.CurrentVersion is Version newVersion) {
+                        _meta.Versions[name] = newVersion;
+                    } else {
+                        _meta.Versions.Remove(name);
                     }
 
-                    if (version.IsTheSame(collection.CurrentVersion) || collection.Loading != null) {
-                        return;
-                    }
+                    File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
+                }
+            }));
 
-                    await collection.Load(db, version, _cts.Token);
-
-                    lock (_metaLock) {
-                        if (collection.CurrentVersion is Version newVersion) {
-                            _meta.Versions[name] = newVersion;
-                        } else {
-                            _meta.Versions.Remove(name);
-                        }
-
-                        File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
-                    }
-                }));
-
-                // Delete all unneeded collections
-                await Task.WhenAll(_collections.Select(async kv => {
-                    if (_reqSet.Contains(kv.Key)) {
-                        return;
-                    }
-
-                    await kv.Value.Unload(db, _cts.Token);
-
-                    lock (_metaLock) {
-                        _meta.Versions.Remove(kv.Key);
-                        File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
-                    }
-                }));
-
-                // Vacuum database
-                await db.Connection.ExecuteScalarAsync<string>("VACUUM");
-            }
+            // Vacuum database
+            await db.Connection.ExecuteScalarAsync<string>("VACUUM");
         }
 
         private void BuildIdChanged(object sender, ValueEventArgs<int> e) {

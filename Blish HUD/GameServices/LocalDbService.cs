@@ -1,8 +1,6 @@
 ﻿using Blish_HUD.LocalDb;
 using Microsoft.Xna.Framework;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 #nullable enable
 
@@ -28,9 +26,6 @@ namespace Blish_HUD {
         }
 
         protected override void Load() {
-            Module.ModuleRegistered += ModuleRegistered;
-            Module.ModuleUnregistered += ModuleUnregistered;
-
             _handler = new DbHandler(
                 Path.Combine(_basePath, META_FILENAME),
                 Path.Combine(_basePath, DATABASE_FILENAME));
@@ -41,26 +36,15 @@ namespace Blish_HUD {
         protected override void Update(GameTime gameTime) { /* NOOP */ }
 
         protected override void Unload() {
-            Module.ModuleRegistered -= ModuleRegistered;
-            Module.ModuleUnregistered -= ModuleUnregistered;
             _handler.Dispose();
         }
 
         internal void UpdateCollections() {
-            _handler.QueueReqSet(new HashSet<string>(Module.Modules.SelectMany(m => m.Manifest.LocalCollections)));
             _ = _handler.UpdateCollections();
         }
 
         internal bool CollectionExists(string name) {
             return _handler.GetCollection(name) != null;
-        }
-
-        private void ModuleRegistered(object sender, ValueEventArgs<Modules.ModuleManager> e) {
-            UpdateCollections();
-        }
-
-        private void ModuleUnregistered(object sender, ValueEventArgs<Modules.ModuleManager> e) {
-            UpdateCollections();
         }
     }
 }
