@@ -2,7 +2,9 @@
 using Newtonsoft.Json.Serialization;
 using SQLite;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 #nullable enable
@@ -33,11 +35,22 @@ namespace Blish_HUD.LocalDb {
             public const string ID_COLUMN = "id";
             public const string DATA_COLUMN = "data";
 
+            private static readonly ConcurrentDictionary<SQLiteConnection, int> _references =
+                new ConcurrentDictionary<SQLiteConnection, int>();
+            private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
+
             public SQLiteContext(string dbPath, bool readOnly) {
-                this.Connection = new SQLiteAsyncConnection(dbPath,
-                    readOnly
-                        ? SQLiteOpenFlags.ReadOnly
-                        : SQLiteOpenFlags.ReadWrite);
+                _semaphore.Wait();
+                try {
+                    this.Connection = new SQLiteAsyncConnection(dbPath,
+                        readOnly
+                            ? SQLiteOpenFlags.ReadOnly
+                            : SQLiteOpenFlags.ReadWrite);
+
+                    _references.AddOrUpdate(this.Connection.GetConnection(), 1, (_, x) => x + 1);
+                } finally {
+                    _semaphore.Release();
+                }
             }
 
             public static void Create(string dbPath, IEnumerable<ILoadCollection> collections) {
@@ -69,7 +82,18 @@ namespace Blish_HUD.LocalDb {
 
             public void Dispose() => DisposeAsync().AsTask().Wait();
 
-            public async ValueTask DisposeAsync() => await Connection.CloseAsync();
+            public async ValueTask DisposeAsync() {
+                await _semaphore.WaitAsync();
+                try {
+                    var key = Connection.GetConnection();
+                    if (_references.AddOrUpdate(key, 0, (_, x) => x - 1) <= 0) {
+                        _references.TryRemove(key, out int _);
+                        await Connection.CloseAsync();
+                    }
+                } finally {
+                    _semaphore.Release();
+                }
+            }
         }
     }
 }
