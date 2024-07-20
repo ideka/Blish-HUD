@@ -39,9 +39,9 @@ namespace Blish_HUD.LocalDb {
         internal IDbAccess GetAccess()
             => new DbAccess(new SQLiteContext(_dbPath, true), this);
 
-        internal int CountMismatchedLocaleCollections(Locale locale) {
+        internal int CountMismatchedLocaleCollections() {
             lock (_lock) {
-                return _meta.Versions.Count(x => x.Value.Locale != locale);
+                return _meta.Versions.Count(x => x.Value.Locale != GameService.Overlay.UserLocale.Value);
             }
         }
 
@@ -66,15 +66,16 @@ namespace Blish_HUD.LocalDb {
                         return;
                     }
 
-                    // BuildID already matches and there isn't a forced locale or forced locale also matches, skip
+                    // BuildID already matches and the locale either also matches or isn't forced, skip
                     if (collection.CurrentVersion?.BuildId == buildId &&
-                        (!ForcedLocale.HasValue || ForcedLocale == collection.CurrentVersion?.Locale)) {
+                        (collection.CurrentVersion?.Locale == GameService.Overlay.UserLocale.Value ||
+                        GameService.Overlay.UserLocale.Value != ForcedLocale)) {
                         return;
                     }
 
                     await collection.Load(db, new Version() {
                         BuildId = buildId,
-                        Locale = ForcedLocale ?? GameService.Overlay.UserLocale.Value,
+                        Locale = GameService.Overlay.UserLocale.Value,
                     }, _cts.Token);
 
                     lock (_lock) {
@@ -88,8 +89,8 @@ namespace Blish_HUD.LocalDb {
                     }
                 }));
 
-                // If there's a forced locale and there's still collections with a different locale, go again.
-            } while (ForcedLocale is Locale forcedLocale && CountMismatchedLocaleCollections(forcedLocale) > 0);
+                // If the current locale is forced and there's still collections with a different locale, go again.
+            } while (GameService.Overlay.UserLocale.Value == ForcedLocale && CountMismatchedLocaleCollections() > 0);
 
             // Vacuum database
             await db.Connection.ExecuteScalarAsync<string>("VACUUM");

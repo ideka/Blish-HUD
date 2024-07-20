@@ -43,12 +43,12 @@ namespace Blish_HUD {
             _handler.Dispose();
         }
 
-        internal int CountMismatchedLocaleCollections(Locale locale) {
-            return _handler.CountMismatchedLocaleCollections(locale);
+        internal int CountMismatchedLocaleCollections() {
+            return _handler.CountMismatchedLocaleCollections();
         }
 
-        internal void ForceLocale(Locale locale) {
-            _handler.ForcedLocale = locale;
+        internal void ForceCurrentLocale() {
+            _handler.ForcedLocale = Overlay.UserLocale.Value;
             UpdateCollections();
         }
 
