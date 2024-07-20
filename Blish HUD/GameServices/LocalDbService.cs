@@ -1,4 +1,5 @@
 ﻿using Blish_HUD.LocalDb;
+using Gw2Sharp.WebApi;
 using Microsoft.Xna.Framework;
 using System.IO;
 
@@ -30,11 +31,15 @@ namespace Blish_HUD {
                 Path.Combine(_basePath, DATABASE_FILENAME));
 
             UpdateCollections();
+
+            Gw2Mumble.Info.BuildIdChanged += BuildIdChanged;
         }
 
         protected override void Update(GameTime gameTime) { /* NOOP */ }
 
         protected override void Unload() {
+            Gw2Mumble.Info.BuildIdChanged -= BuildIdChanged;
+
             _handler.Dispose();
         }
 
@@ -42,8 +47,21 @@ namespace Blish_HUD {
             _ = _handler.UpdateCollections();
         }
 
+        internal int CountMismatchedLocaleCollections(Locale locale) {
+            return _handler.CountMismatchedLocaleCollections(locale);
+        }
+
+        internal void ForceLocale(Locale locale) {
+            _handler.ForcedLocale = locale;
+            UpdateCollections();
+        }
+
         internal bool CollectionExists(string name) {
             return _handler.GetCollection(name) != null;
+        }
+
+        private void BuildIdChanged(object sender, ValueEventArgs<int> e) {
+            UpdateCollections();
         }
     }
 }

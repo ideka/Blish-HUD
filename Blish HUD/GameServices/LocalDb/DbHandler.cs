@@ -26,6 +26,8 @@ namespace Blish_HUD.LocalDb {
             }
         }
 
+        internal Locale? ForcedLocale { get; set; }
+
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
         private readonly Meta _meta;
         private readonly string _metaPath;
@@ -37,51 +39,63 @@ namespace Blish_HUD.LocalDb {
         internal IDbAccess GetAccess()
             => new DbAccess(new SQLiteContext(_dbPath, true), this);
 
+        internal int CountMismatchedLocaleCollections(Locale locale) {
+            lock (_lock) {
+                return _meta.Versions.Count(x => x.Value.Locale != locale);
+            }
+        }
+
         internal async Task UpdateCollections() {
-            var version = new Version() {
-                BuildId = GameService.Gw2Mumble.Info.BuildId,
-                Locale = GameService.Overlay.UserLocale.Value,
-            };
+            int buildId = GameService.Gw2Mumble.Info.BuildId;
 
             // Not ready to update
-            if (version.BuildId == 0) {
+            if (buildId == 0) {
                 return;
             }
 
             await using var db = new SQLiteContext(_dbPath, false);
 
-            // Make sure all collections are up-to-date
-            await Task.WhenAll(_collections.Select(async kv => {
-                string name = kv.Key;
-                ILoadCollection collection = kv.Value;
+            do {
+                // Make sure all collections are up-to-date
+                await Task.WhenAll(_collections.Select(async kv => {
+                    string name = kv.Key;
+                    ILoadCollection collection = kv.Value;
 
-                if (version.IsTheSame(collection.CurrentVersion) || collection.Loading != null) {
-                    return;
-                }
-
-                await collection.Load(db, version, _cts.Token);
-
-                lock (_lock) {
-                    if (collection.CurrentVersion is Version newVersion) {
-                        _meta.Versions[name] = newVersion;
-                    } else {
-                        _meta.Versions.Remove(name);
+                    // Collection is already loading, skip
+                    if (collection.Loading != null) {
+                        return;
                     }
 
-                    File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
-                }
-            }));
+                    // BuildID already matches and there isn't a forced locale or forced locale also matches, skip
+                    if (collection.CurrentVersion?.BuildId == buildId &&
+                        (!ForcedLocale.HasValue || ForcedLocale == collection.CurrentVersion?.Locale)) {
+                        return;
+                    }
+
+                    await collection.Load(db, new Version() {
+                        BuildId = buildId,
+                        Locale = ForcedLocale ?? GameService.Overlay.UserLocale.Value,
+                    }, _cts.Token);
+
+                    lock (_lock) {
+                        if (collection.CurrentVersion is Version newVersion) {
+                            _meta.Versions[name] = newVersion;
+                        } else {
+                            _meta.Versions.Remove(name);
+                        }
+
+                        File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
+                    }
+                }));
+
+                // If there's a forced locale and there's still collections with a different locale, go again.
+            } while (ForcedLocale is Locale forcedLocale && CountMismatchedLocaleCollections(forcedLocale) > 0);
 
             // Vacuum database
             await db.Connection.ExecuteScalarAsync<string>("VACUUM");
         }
 
-        private void BuildIdChanged(object sender, ValueEventArgs<int> e) {
-            _ = UpdateCollections();
-        }
-
         public void Dispose() {
-            GameService.Gw2Mumble.Info.BuildIdChanged -= BuildIdChanged;
             _cts.Cancel();
         }
     }

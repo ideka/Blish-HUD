@@ -572,8 +572,6 @@ namespace Blish_HUD.LocalDb {
                 (WvwUpgrade x) => x.Id);
 
             SQLiteContext.Create(_dbPath, _collections.Values);
-
-            GameService.Gw2Mumble.Info.BuildIdChanged += BuildIdChanged;
         }
 
         internal IMetaCollection? GetCollection(string name)
