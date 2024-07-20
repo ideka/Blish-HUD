@@ -7,7 +7,7 @@ using System.IO;
 namespace Blish_HUD {
     public class LocalDbService : GameService {
 
-        private const string DIRECTORY_NAME = "localdb";
+        private const string DIRECTORY_NAME = "localdb/";
         private const string META_FILENAME = "meta.json";
         private const string DATABASE_FILENAME = "localdb.sqlite";
 
@@ -21,8 +21,7 @@ namespace Blish_HUD {
         }
 
         protected override void Initialize() {
-            _basePath = Path.Combine(DirectoryUtil.BasePath, DIRECTORY_NAME);
-            Directory.CreateDirectory(_basePath);
+            _basePath = DirectoryUtil.RegisterDirectory(Path.Combine(DirectoryUtil.CachePath, DIRECTORY_NAME));
         }
 
         protected override void Load() {
