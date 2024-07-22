@@ -30,12 +30,37 @@ namespace Blish_HUD.LocalDb {
 
         internal Locale? ForcedLocale { get; set; }
 
+        private Meta _meta;
+
         private readonly CancellationTokenSource _cts = new CancellationTokenSource();
-        private readonly Meta _meta;
         private readonly string _metaPath;
         private readonly string _dbPath;
         private readonly string _lockPath;
         private readonly Dictionary<string, ILoadCollection> _collections = new Dictionary<string, ILoadCollection>();
+
+        private void ReloadMeta() {
+            if (!File.Exists(_metaPath)) {
+                return;
+            }
+
+            try {
+                using (new MutexLock(MUTEX_NAME)) {
+                    var meta = JsonConvert.DeserializeObject<Meta>(File.ReadAllText(_metaPath));
+                    if (meta == null) {
+                        _logger.Warn("Cache meta load resulted empty or null.");
+                    } else {
+                        _meta = meta;
+                        foreach (var version in meta.Versions) {
+                            if (_collections.TryGetValue(version.Key, out var collection)) {
+                                collection.CurrentVersion = version.Value;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                _logger.Warn(e, "Exception when loading cache meta.");
+            }
+        }
 
         internal IDbAccess GetAccess()
             => new DbAccess(new SQLiteContext(_dbPath, true), this);
@@ -54,7 +79,7 @@ namespace Blish_HUD.LocalDb {
                 return;
             }
 
-            // Check if else (potentially a different BlishHUD process) is already updating the database
+            // Check if someone else (potentially a different BlishHUD process) is already updating the database
             using var fileLock = LockFile.TryAcquire(_lockPath);
             if (fileLock == null) {
                 return;
@@ -63,6 +88,8 @@ namespace Blish_HUD.LocalDb {
             await using var db = new SQLiteContext(_dbPath, false);
 
             do {
+                ReloadMeta();
+
                 // Make sure all collections are up-to-date
                 await Task.WhenAll(_collections.Select(async kv => {
                     string name = kv.Key;

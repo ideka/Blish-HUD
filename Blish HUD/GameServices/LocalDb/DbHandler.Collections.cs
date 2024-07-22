@@ -2,14 +2,11 @@
 using Gw2Sharp.WebApi.V2;
 using Gw2Sharp.WebApi.V2.Clients;
 using Gw2Sharp.WebApi.V2.Models;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using File = Gw2Sharp.WebApi.V2.Models.File;
-using IOFile = System.IO.File;
 
 #nullable enable
 
@@ -129,6 +126,8 @@ namespace Blish_HUD.LocalDb {
     }
 
     internal partial class DbHandler : IDbMeta {
+
+        #region Collection declarations
         // /v2/achievements
         private readonly Collection<int, Achievement> _achievements;
         public IMetaCollection Achievements => _achievements;
@@ -350,28 +349,15 @@ namespace Blish_HUD.LocalDb {
         // /v2/skiffs
         // /v2/emblem/backgrounds
         // /v2/emblem/foregrounds
+        #endregion
 
         public DbHandler(string metaPath, string dbPath, string lockPath) {
             _metaPath = metaPath;
             _dbPath = dbPath;
             _lockPath = lockPath;
 
-            if (IOFile.Exists(metaPath)) {
-                _logger.Info("Found cache meta file, loading.");
-                try {
-                    var meta = JsonConvert.DeserializeObject<Meta>(IOFile.ReadAllText(metaPath));
-                    if (meta == null) {
-                        _logger.Warn("Cache meta load resulted empty or null.");
-                    } else {
-                        _meta = meta;
-                    }
-                } catch (Exception e) {
-                    _logger.Warn(e, "Exception when loading cache meta.");
-                }
-            }
-
-            _metaPath = metaPath;
-            _meta ??= new Meta();
+            _meta = new Meta();
+            ReloadMeta();
 
             Collection<TId, TItem> addCollection<TId, TItem>(
                 string name,
@@ -409,6 +395,7 @@ namespace Blish_HUD.LocalDb {
                 return items;
             }
 
+            #region Collection definitions
             _achievements = addCollection("Achievement",
                 async ct => await allPages(GameService.Gw2WebApi.AnonymousConnection.Client.V2.Achievements, ct),
                 (Achievement x) => x.Id);
@@ -571,6 +558,7 @@ namespace Blish_HUD.LocalDb {
             _wvwUpgrade = addCollection("WvwUpgrade",
                 async ct => await GameService.Gw2WebApi.AnonymousConnection.Client.V2.Wvw.Upgrades.AllAsync(ct),
                 (WvwUpgrade x) => x.Id);
+            #endregion
 
             SQLiteContext.Create(_dbPath, _collections.Values);
         }

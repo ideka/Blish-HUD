@@ -12,7 +12,7 @@ namespace Blish_HUD.LocalDb {
         private interface ILoadCollection {
             Type IdType { get; }
             string TableName { get; }
-            Version? CurrentVersion { get; }
+            Version? CurrentVersion { get; set; }
             Version? Loading { get; }
 
             Task Unload(SQLiteContext db, CancellationToken ct);
@@ -28,7 +28,7 @@ namespace Blish_HUD.LocalDb {
 
             public Type IdType { get; } = typeof(TId);
             public string TableName { get; }
-            public Version? CurrentVersion { get; private set; }
+            public Version? CurrentVersion { get; set; }
 
             public Version? Loading { get; private set; }
             public Exception? Exception { get; private set; }
