@@ -356,9 +356,15 @@ namespace Blish_HUD.LocalDb {
             _dbPath = dbPath;
             _lockPath = lockPath;
 
+            _locale = GameService.Overlay.UserLocale.Value;
             _meta = new Meta();
             using (var @lock = new MutexLock(MUTEX_NAME)) {
                 ReloadMeta(@lock);
+                foreach (var kv in _meta.Versions) {
+                    if (kv.Value.Locale != _locale) {
+                        _mismatchedLocaleCollections.Add(kv.Key);
+                    }
+                }
             }
 
             Collection<TId, TItem> addCollection<TId, TItem>(

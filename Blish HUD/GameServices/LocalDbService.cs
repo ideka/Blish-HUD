@@ -44,15 +44,6 @@ namespace Blish_HUD {
             _handler.Dispose();
         }
 
-        internal int CountMismatchedLocaleCollections() {
-            return _handler.CountMismatchedLocaleCollections();
-        }
-
-        internal void ForceCurrentLocale() {
-            _handler.ForcedLocale = Overlay.UserLocale.Value;
-            UpdateCollections();
-        }
-
         private void BuildIdChanged(object sender, ValueEventArgs<int> e) {
             UpdateCollections();
         }

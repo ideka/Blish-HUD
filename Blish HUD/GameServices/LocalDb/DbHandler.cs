@@ -32,7 +32,6 @@ namespace Blish_HUD.LocalDb {
             public readonly bool IsValid => BuildId > 0;
         }
 
-        internal Locale? ForcedLocale { get; set; }
         internal event Action<IMetaCollection>? CollectionLoaded;
 
         private Meta _meta;
@@ -41,6 +40,8 @@ namespace Blish_HUD.LocalDb {
         private readonly string _metaPath;
         private readonly string _dbPath;
         private readonly string _lockPath;
+        private readonly Locale _locale;
+        private readonly HashSet<string> _mismatchedLocaleCollections = new HashSet<string>();
         private readonly Dictionary<string, ILoadCollection> _collections = new Dictionary<string, ILoadCollection>();
 
         private void ReloadMeta(MutexLock @lock) {
@@ -81,13 +82,8 @@ namespace Blish_HUD.LocalDb {
             File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
         }
 
-        internal IDbAccess GetAccess()
-            => new DbAccess(new SQLiteContext(_dbPath, true), this);
-
-        internal int CountMismatchedLocaleCollections() {
-            using (new MutexLock(MUTEX_NAME)) {
-                return _meta.Versions.Count(x => x.Value.Locale != GameService.Overlay.UserLocale.Value);
-            }
+        internal IDbAccess GetAccess() {
+            return new DbAccess(new SQLiteContext(_dbPath, true), this);
         }
 
         internal async Task UpdateCollections() {
@@ -106,55 +102,49 @@ namespace Blish_HUD.LocalDb {
 
             await using var db = new SQLiteContext(_dbPath, false);
 
-            do {
-                using (var @lock = new MutexLock(MUTEX_NAME)) {
-                    ReloadMeta(@lock);
+            using (var @lock = new MutexLock(MUTEX_NAME)) {
+                ReloadMeta(@lock);
+            }
+
+            // Make sure all collections are up-to-date
+            await Task.WhenAll(_collections.Select(async kv => {
+                string name = kv.Key;
+                ILoadCollection collection = kv.Value;
+
+                // BuildID and locale already match, skip
+                if (collection.CurrentVersion?.BuildId == buildId &&
+                    !_mismatchedLocaleCollections.Contains(name)
+                ) {
+                    return;
                 }
 
-                // Make sure all collections are up-to-date
-                await Task.WhenAll(_collections.Select(async kv => {
-                    string name = kv.Key;
-                    ILoadCollection collection = kv.Value;
+                // Only try to update based on locale mismatch once per collection
+                _mismatchedLocaleCollections.Remove(name);
 
-                    // BuildID already matches and the locale either also matches or isn't forced, skip
-                    if (collection.CurrentVersion?.BuildId == buildId &&
-                        (collection.CurrentVersion?.Locale == GameService.Overlay.UserLocale.Value ||
-                        GameService.Overlay.UserLocale.Value != ForcedLocale)) {
-                        return;
+                bool wasLoaded = collection.IsLoaded;
+                bool success = await collection.Load(db, _cts.Token);
+
+                using (var @lock = new MutexLock(MUTEX_NAME)) {
+                    if (success) {
+                        _meta.Versions[name] = new Version() {
+                            BuildId = buildId,
+                            Locale = _locale,
+                            IsFaulted = false,
+                        };
+                    } else if (!_meta.Versions.ContainsKey(name)) {
+                        _meta.Versions[name] = new Version() {
+                            BuildId = -1,
+                            Locale = _locale,
+                            IsFaulted = true,
+                        };
                     }
+                    WriteMeta(@lock);
+                }
 
-                    bool wasLoaded = collection.IsLoaded;
-                    bool success = await collection.Load(db, _cts.Token);
-
-                    using (new MutexLock(MUTEX_NAME)) {
-                        if (success) {
-                            _meta.Versions[name] = new Version() {
-                                BuildId = buildId,
-                                Locale = GameService.Overlay.UserLocale.Value,
-                                IsFaulted = false,
-                            };
-                        } else if (!_meta.Versions.ContainsKey(name)) {
-                            _meta.Versions[name] = new Version() {
-                                BuildId = -1,
-                                Locale = GameService.Overlay.UserLocale.Value,
-                                IsFaulted = true,
-                            };
-                        }
-                        File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
-                    }
-
-                    if (!wasLoaded && collection.IsLoaded) {
-                        CollectionLoaded?.Invoke(collection);
-                    }
-                }));
-
-                _cts.Token.ThrowIfCancellationRequested();
-
-                // If the current locale is forced and there's still collections with a different locale, go again
-            } while (GameService.Overlay.UserLocale.Value == ForcedLocale && CountMismatchedLocaleCollections() > 0);
-
-            // Reset forced locale once everything has been updated
-            ForcedLocale = null;
+                if (!wasLoaded && collection.IsLoaded) {
+                    CollectionLoaded?.Invoke(collection);
+                }
+            }));
 
             _cts.Token.ThrowIfCancellationRequested();
 
