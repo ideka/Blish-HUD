@@ -12,11 +12,19 @@ namespace Blish_HUD {
         private const string DATABASE_FILENAME = "localdb.sqlite";
         private const string LOCK_FILENAME = "localdb.lock";
 
+        /// <summary>
+        /// Get read-only access to metadata on all database collections.
+        /// </summary>
         public IDbMeta Meta => _handler;
 
         private string _basePath = null!;
         private DbHandler _handler = null!;
 
+        /// <summary>
+        /// Get read-only access to all database collections. Make sure to call <c>DisposeAsync</c> or <c>Dispose</c>
+        /// when you're done.
+        /// </summary>
+        /// <returns>An object used to access database collections.</returns>
         public IDbAccess GetAccess() {
             return _handler.GetAccess();
         }

@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 #nullable enable
 
 namespace Blish_HUD.LocalDb {
+    /// <summary>
+    /// Provides read-only access to metadata on all database collections.
+    /// </summary>
     public interface IDbMeta {
         IMetaCollection Achievements { get; }
         IMetaCollection AchievementCategories { get; }
@@ -68,6 +71,9 @@ namespace Blish_HUD.LocalDb {
         IMetaCollection WvwUpgrade { get; }
     }
 
+    /// <summary>
+    /// Provides read-only access to all database collections.
+    /// </summary>
     public interface IDbAccess : IDisposable, IAsyncDisposable {
         IDbCollection<int, Achievement> Achievements { get; }
         IDbCollection<int, AchievementCategory> AchievementCategories { get; }
