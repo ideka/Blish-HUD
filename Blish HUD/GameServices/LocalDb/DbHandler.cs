@@ -17,6 +17,10 @@ namespace Blish_HUD.LocalDb {
 
         private class Meta {
             public Dictionary<string, Version> Versions { get; set; } = new Dictionary<string, Version>();
+
+            public Version? GetVersion(string name) {
+                return Versions.TryGetValue(name, out var version) ? version : (Version?)null;
+            }
         }
 
         private /*readonly record*/ struct Version {
@@ -50,11 +54,6 @@ namespace Blish_HUD.LocalDb {
                         _logger.Warn("Cache meta load resulted empty or null.");
                     } else {
                         _meta = meta;
-                        foreach (var version in meta.Versions) {
-                            if (_collections.TryGetValue(version.Key, out var collection)) {
-                                collection.CurrentVersion = version.Value;
-                            }
-                        }
                     }
                 }
             } catch (Exception e) {
@@ -107,18 +106,15 @@ namespace Blish_HUD.LocalDb {
                         return;
                     }
 
-                    await collection.Load(db, new Version() {
+                    var newVersion = new Version() {
                         BuildId = buildId,
                         Locale = GameService.Overlay.UserLocale.Value,
-                    }, _cts.Token);
+                    };
+
+                    await collection.Load(db, newVersion, _cts.Token);
 
                     using (new MutexLock(MUTEX_NAME)) {
-                        if (collection.CurrentVersion is Version newVersion) {
-                            _meta.Versions[name] = newVersion;
-                        } else {
-                            _meta.Versions.Remove(name);
-                        }
-
+                        _meta.Versions[name] = newVersion;
                         File.WriteAllText(_metaPath, JsonConvert.SerializeObject(_meta));
                     }
                 }));

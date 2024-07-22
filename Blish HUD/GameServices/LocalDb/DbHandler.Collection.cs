@@ -12,7 +12,7 @@ namespace Blish_HUD.LocalDb {
         private interface ILoadCollection {
             Type IdType { get; }
             string TableName { get; }
-            Version? CurrentVersion { get; set; }
+            Version? CurrentVersion { get; }
             Version? Loading { get; }
 
             Task Unload(SQLiteContext db, CancellationToken ct);
@@ -28,7 +28,7 @@ namespace Blish_HUD.LocalDb {
 
             public Type IdType { get; } = typeof(TId);
             public string TableName { get; }
-            public Version? CurrentVersion { get; set; }
+            public Version? CurrentVersion => _getVersion();
 
             public Version? Loading { get; private set; }
             public Exception? Exception { get; private set; }
@@ -36,15 +36,16 @@ namespace Blish_HUD.LocalDb {
             public bool IsAvailable => CurrentVersion.HasValue;
             public bool IsFaulted => Exception != null;
 
+            private readonly Func<Version?> _getVersion;
             private readonly Func<CancellationToken, Task<IEnumerable<(TId id, TItem item)>>> _load;
 
             public Collection(
                 string tableName,
-                Version? version,
+                Func<Version?> getVersion,
                 Func<CancellationToken, Task<IEnumerable<(TId id, TItem item)>>> load) {
 
                 TableName = tableName;
-                CurrentVersion = version;
+                _getVersion = getVersion;
                 _load = load;
             }
 
@@ -69,7 +70,6 @@ namespace Blish_HUD.LocalDb {
                 => new LocalCollection<TId, TItem>(db, TableName);
 
             public async Task Unload(SQLiteContext db, CancellationToken _) {
-                CurrentVersion = null;
                 await db.Connection.ExecuteAsync($"DELETE FROM `{TableName}`");
             }
 
@@ -93,7 +93,6 @@ namespace Blish_HUD.LocalDb {
                         }
                     });
 
-                    CurrentVersion = version;
                     Exception = null;
                 } catch (Exception e) {
                     _logger.Warn(e, $"Failed to load cache for {TableName}");

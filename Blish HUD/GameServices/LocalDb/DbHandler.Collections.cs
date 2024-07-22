@@ -367,7 +367,7 @@ namespace Blish_HUD.LocalDb {
                 where TItem : class {
                 var collection = new Collection<TId, TItem>(
                     name,
-                    _meta.Versions.TryGetValue(name, out var version) ? (Version?)version : null,
+                    () => _meta.GetVersion(name),
                     async ct => (await load(ct)).Select(x => (keyGetter(x), x)));
                 _collections[name] = collection;
                 return collection;
