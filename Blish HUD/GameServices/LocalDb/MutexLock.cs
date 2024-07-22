@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Threading;
@@ -20,7 +18,7 @@ namespace Blish_HUD.LocalDb {
 
         private readonly Mutex _mutex;
 
-        public MutexLock(string name, int timeout = -1)
+        public MutexLock(string name, TimeSpan? timeout = null)
         {
             {
                 _mutex = new Mutex(false, $"{APP_GUID}.{name}");
@@ -35,7 +33,7 @@ namespace Blish_HUD.LocalDb {
             }
 
             try {
-                HasHandle = _mutex.WaitOne(timeout < 0 ? Timeout.Infinite : timeout, false);
+                HasHandle = _mutex.WaitOne(timeout ?? Timeout.InfiniteTimeSpan, false);
 
                 if (!HasHandle) {
                     TimedOut = true;

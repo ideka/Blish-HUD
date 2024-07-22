@@ -1,5 +1,4 @@
 ﻿using SQLite;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -21,7 +20,7 @@ namespace Blish_HUD.LocalDb {
     }
 
     public interface IMetaCollection {
-        event Action? Loaded;
+        bool IsLoaded { get; }
         bool IsAvailable { get; }
         Task WaitUntilLoaded();
     }

@@ -9,73 +9,69 @@ using System.Threading.Tasks;
 
 namespace Blish_HUD.LocalDb {
     internal partial class DbHandler {
-        private interface ILoadCollection {
+        private interface ILoadCollection : IMetaCollection {
             Type IdType { get; }
             string TableName { get; }
             Version? CurrentVersion { get; }
-            Version? Loading { get; }
 
             Task Unload(SQLiteContext db, CancellationToken ct);
-            Task Load(SQLiteContext db, Version version, CancellationToken ct);
+            Task<bool> Load(SQLiteContext db, CancellationToken ct);
         }
 
-        private partial class Collection<TId, TItem> : ILoadCollection, IMetaCollection
+        private partial class Collection<TId, TItem> : ILoadCollection
             where TId : notnull
             where TItem : class {
             private static readonly Logger _logger = Logger.GetLogger<Collection<TId, TItem>>();
 
-            public event Action? Loaded;
-
             public Type IdType { get; } = typeof(TId);
             public string TableName { get; }
-            public Version? CurrentVersion => _getVersion();
 
-            public Version? Loading { get; private set; }
-            public Exception? Exception { get; private set; }
+            public Version? CurrentVersion => _handler._meta.GetVersion(TableName);
 
-            public bool IsAvailable => CurrentVersion.HasValue;
-            public bool IsFaulted => Exception != null;
+            public bool IsLoaded => CurrentVersion != null;
+            public bool IsAvailable => CurrentVersion?.IsValid == true;
 
-            private readonly Func<Version?> _getVersion;
+            private readonly DbHandler _handler;
             private readonly Func<CancellationToken, Task<IEnumerable<(TId id, TItem item)>>> _load;
 
             public Collection(
+                DbHandler handler,
                 string tableName,
-                Func<Version?> getVersion,
-                Func<CancellationToken, Task<IEnumerable<(TId id, TItem item)>>> load) {
-
+                Func<CancellationToken, Task<IEnumerable<(TId id, TItem item)>>> load
+            ) {
+                _handler = handler;
                 TableName = tableName;
-                _getVersion = getVersion;
                 _load = load;
             }
 
             public Task WaitUntilLoaded() {
                 var tcs = new TaskCompletionSource<object>();
 
-                Loaded += loaded;
+                _handler.CollectionLoaded += loaded;
 
-                void loaded() {
-                    Loaded -= loaded;
+                void loaded(IMetaCollection collection) {
+                    if (collection != this) {
+                        return;
+                    }
+
+                    _handler.CollectionLoaded -= loaded;
                     tcs.SetResult(null!);
                 }
 
-                return IsAvailable
-                    ? Task.CompletedTask
-                    : IsFaulted && !Loading.HasValue
+                return IsLoaded
                     ? Task.CompletedTask
                     : tcs.Task;
             }
 
-            public IDbCollection<TId, TItem> Access(SQLiteAsyncConnection db)
-                => new LocalCollection<TId, TItem>(db, TableName);
+            public IDbCollection<TId, TItem> Access(SQLiteAsyncConnection db) {
+                return new LocalCollection<TId, TItem>(db, TableName);
+            }
 
             public async Task Unload(SQLiteContext db, CancellationToken _) {
                 await db.Connection.ExecuteAsync($"DELETE FROM `{TableName}`");
             }
 
-            public async Task Load(SQLiteContext db, Version version, CancellationToken ct) {
-                Loading = version;
-
+            public async Task<bool> Load(SQLiteContext db, CancellationToken ct) {
                 try {
                     var values = await _load(ct);
                     await db.Connection.RunInTransactionAsync(transaction => {
@@ -93,13 +89,10 @@ namespace Blish_HUD.LocalDb {
                         }
                     });
 
-                    Exception = null;
+                    return true;
                 } catch (Exception e) {
                     _logger.Warn(e, $"Failed to load cache for {TableName}");
-                    Exception = e;
-                } finally {
-                    Loading = null;
-                    Loaded?.Invoke();
+                    return false;
                 }
             }
         }

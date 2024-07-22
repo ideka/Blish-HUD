@@ -357,7 +357,9 @@ namespace Blish_HUD.LocalDb {
             _lockPath = lockPath;
 
             _meta = new Meta();
-            ReloadMeta();
+            using (var @lock = new MutexLock(MUTEX_NAME)) {
+                ReloadMeta(@lock);
+            }
 
             Collection<TId, TItem> addCollection<TId, TItem>(
                 string name,
@@ -366,8 +368,8 @@ namespace Blish_HUD.LocalDb {
                 where TId : notnull
                 where TItem : class {
                 var collection = new Collection<TId, TItem>(
+                    this,
                     name,
-                    () => _meta.GetVersion(name),
                     async ct => (await load(ct)).Select(x => (keyGetter(x), x)));
                 _collections[name] = collection;
                 return collection;
@@ -560,11 +562,10 @@ namespace Blish_HUD.LocalDb {
                 (WvwUpgrade x) => x.Id);
             #endregion
 
+            Task.Run(MetaReloader);
+
             SQLiteContext.Create(_dbPath, _collections.Values);
         }
-
-        internal IMetaCollection? GetCollection(string name)
-            => _collections.TryGetValue(name, out var collection) ? (IMetaCollection?)collection : null;
 
         private class DbAccess : IDbAccess {
             public IDbCollection<int, Achievement> Achievements { get; }
