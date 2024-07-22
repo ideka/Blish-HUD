@@ -11,7 +11,8 @@ namespace Blish_HUD.LocalDb {
     internal class MutexLock : IDisposable {
         private static readonly Logger _logger = Logger.GetLogger<MutexLock>();
 
-        private static string? _appGuid = null;
+        // FIXME: This is duplicated from Program.APP_GUID... should it be made public there?
+        private const string APP_GUID = "{5802208e-71ca-4745-ab1b-d851bc17a460}";
 
         public readonly bool HasHandle = false;
         public readonly bool TimedOut = false;
@@ -22,10 +23,7 @@ namespace Blish_HUD.LocalDb {
         public MutexLock(string name, int timeout = -1)
         {
             {
-                _appGuid ??= ((GuidAttribute)Assembly.GetExecutingAssembly()
-                   .GetCustomAttributes(typeof(GuidAttribute), false)
-                   .GetValue(0)).Value;
-                _mutex = new Mutex(false, $"Global\\{{{_appGuid}}}\\{name}");
+                _mutex = new Mutex(false, $"{APP_GUID}.{name}");
 
                 var allowEveryoneRule = new MutexAccessRule(
                     new SecurityIdentifier(WellKnownSidType.WorldSid, null),
