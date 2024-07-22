@@ -80,7 +80,7 @@ namespace Blish_HUD.LocalDb {
             public static T Deserialize<T>(string data)
                 => JsonConvert.DeserializeObject<T>(data, _jsonSerializerSettings) ?? throw new Exception();
 
-            public void Dispose() => DisposeAsync().AsTask().Wait();
+            public void Dispose() => DisposeAsync().GetAwaiter().GetResult();
 
             public async ValueTask DisposeAsync() {
                 await _semaphore.WaitAsync();

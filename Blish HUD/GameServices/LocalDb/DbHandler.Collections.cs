@@ -351,9 +351,10 @@ namespace Blish_HUD.LocalDb {
         // /v2/emblem/backgrounds
         // /v2/emblem/foregrounds
 
-        public DbHandler(string metaPath, string dbPath) {
+        public DbHandler(string metaPath, string dbPath, string lockPath) {
             _metaPath = metaPath;
             _dbPath = dbPath;
+            _lockPath = lockPath;
 
             if (IOFile.Exists(metaPath)) {
                 _logger.Info("Found cache meta file, loading.");

@@ -13,6 +13,8 @@ namespace Blish_HUD.LocalDb {
     internal partial class DbHandler : IDisposable {
         private static readonly Logger _logger = Logger.GetLogger<DbHandler>();
 
+        private const string MUTEX_NAME = "DbHandler.Meta";
+
         private class Meta {
             public Dictionary<string, Version> Versions { get; set; } = new Dictionary<string, Version>();
         }
@@ -32,15 +34,14 @@ namespace Blish_HUD.LocalDb {
         private readonly Meta _meta;
         private readonly string _metaPath;
         private readonly string _dbPath;
+        private readonly string _lockPath;
         private readonly Dictionary<string, ILoadCollection> _collections = new Dictionary<string, ILoadCollection>();
-
-        private readonly object _lock = new object();
 
         internal IDbAccess GetAccess()
             => new DbAccess(new SQLiteContext(_dbPath, true), this);
 
         internal int CountMismatchedLocaleCollections() {
-            lock (_lock) {
+            using (new MutexLock(MUTEX_NAME)) {
                 return _meta.Versions.Count(x => x.Value.Locale != GameService.Overlay.UserLocale.Value);
             }
         }
@@ -50,6 +51,12 @@ namespace Blish_HUD.LocalDb {
 
             // Not ready to update
             if (buildId == 0) {
+                return;
+            }
+
+            // Check if else (potentially a different BlishHUD process) is already updating the database
+            using var fileLock = LockFile.TryAcquire(_lockPath);
+            if (fileLock == null) {
                 return;
             }
 
@@ -78,7 +85,7 @@ namespace Blish_HUD.LocalDb {
                         Locale = GameService.Overlay.UserLocale.Value,
                     }, _cts.Token);
 
-                    lock (_lock) {
+                    using (new MutexLock(MUTEX_NAME)) {
                         if (collection.CurrentVersion is Version newVersion) {
                             _meta.Versions[name] = newVersion;
                         } else {
@@ -89,8 +96,15 @@ namespace Blish_HUD.LocalDb {
                     }
                 }));
 
-                // If the current locale is forced and there's still collections with a different locale, go again.
+                _cts.Token.ThrowIfCancellationRequested();
+
+                // If the current locale is forced and there's still collections with a different locale, go again
             } while (GameService.Overlay.UserLocale.Value == ForcedLocale && CountMismatchedLocaleCollections() > 0);
+
+            // Reset forced locale once everything has been updated
+            ForcedLocale = null;
+
+            _cts.Token.ThrowIfCancellationRequested();
 
             // Vacuum database
             await db.Connection.ExecuteScalarAsync<string>("VACUUM");

@@ -1,5 +1,4 @@
 ﻿using Blish_HUD.LocalDb;
-using Gw2Sharp.WebApi;
 using Microsoft.Xna.Framework;
 using System.IO;
 
@@ -11,6 +10,7 @@ namespace Blish_HUD {
         private const string DIRECTORY_NAME = "localdb/";
         private const string META_FILENAME = "meta.json";
         private const string DATABASE_FILENAME = "localdb.sqlite";
+        private const string LOCK_FILENAME = "localdb.lock";
 
         public IDbMeta Meta => _handler;
 
@@ -28,7 +28,8 @@ namespace Blish_HUD {
         protected override void Load() {
             _handler = new DbHandler(
                 Path.Combine(_basePath, META_FILENAME),
-                Path.Combine(_basePath, DATABASE_FILENAME));
+                Path.Combine(_basePath, DATABASE_FILENAME),
+                Path.Combine(_basePath, LOCK_FILENAME));
 
             UpdateCollections();
 
